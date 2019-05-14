@@ -1,0 +1,10 @@
+tensorflow-gpu
+ray
+jupyter
+requests
+pillow
+psutil
+setproctitle
+torch
+torchvision
+cython
