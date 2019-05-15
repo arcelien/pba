@@ -12,7 +12,7 @@
 
 Population Based Augmentation (PBA) is a algorithm that quickly and efficiently learns data augmentation functions for neural network training. PBA matches state-of-the-art results on CIFAR with one thousand times less compute, enabling researchers and practitioners to effectively learn new augmentation policies using a single workstation GPU.
 
-This repository contains code for the work "Population Based Augmentation: Efficient Learning of Augmentation Schedules" (http://arxiv.org/abs/1905.05393), including for training of models with the reported augmentation schedules and for discovery of new augmentation policy schedules.
+This repository contains code for the work "Population Based Augmentation: Efficient Learning of Augmentation Schedules" (http://arxiv.org/abs/1905.05393) in TensorFlow and Python 2. It includes training of models with the reported augmentation schedules and discovery of new augmentation policy schedules.
 
 See below for a visualization of our augmentation strategy.
 
@@ -141,4 +141,18 @@ Probability Hyperparameters over Time     |         Magnitude Hyperparameters ov
 ![](figs/cifar-prob.png)  |  ![](figs/cifar-mag.png)
 
 ### Citation
-WIP
+If you use PBA in your research, please cite:
+
+```
+@inproceedings{ho2019pba,
+  title     = {Population Based Augmentation: Efficient Learning of Augmentation Policy Schedules},
+  author    = {Daniel Ho and
+               Eric Liang and
+               Ion Stoica and
+               Pieter Abbeel and
+               Xi Chen
+  },
+  booktitle = {ICML},
+  year      = {2019}
+}
+```
