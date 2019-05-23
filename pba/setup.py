@@ -26,18 +26,16 @@ def create_parser(state):
     parser.add_argument(
         '--dataset',
         default='cifar10',
-        choices=('cifar10', 'cifar100', 'svhn', 'svhn-full'))
-    parser.add_argument('--image_size', type=int, default=32)
+        choices=('cifar10', 'cifar100', 'svhn', 'svhn-full', 'test'))
     parser.add_argument(
         '--recompute_dset_stats',
         action='store_true',
         help='Instead of using hardcoded mean/std, recompute from dataset.')
-    parser.add_argument('--local_dir', type=str, default='/tmp/ray_results/')
-    parser.add_argument('--restore', type=str, default=None)
-    parser.add_argument('--use_cpu', action='store_true')
-    parser.add_argument('--train_size', type=int, default=5000)
-    parser.add_argument('--val_size', type=int, default=45000)
-    parser.add_argument('--checkpoint_freq', type=int, default=50)
+    parser.add_argument('--local_dir', type=str, default='/tmp/ray_results/',  help='Ray directory.')
+    parser.add_argument('--restore', type=str, default=None, help='If specified, tries to restore from given path.')
+    parser.add_argument('--train_size', type=int, default=5000, help='Number of training examples.')
+    parser.add_argument('--val_size', type=int, default=45000, help='Number of validation examples.')
+    parser.add_argument('--checkpoint_freq', type=int, default=50, help='Checkpoint frequency.')
     parser.add_argument(
         '--cpu', type=float, default=4, help='Allocated by Ray')
     parser.add_argument(
@@ -61,10 +59,11 @@ def create_parser(state):
         help='Number of epochs, or <=0 for default')
     parser.add_argument(
         '--no_cutout', action='store_true', help='turn off cutout')
-    parser.add_argument('--lr', type=float, default=-1.)
-    parser.add_argument('--wd', type=float, default=-1.)
-    parser.add_argument('--bs', type=int, default=128)
-    parser.add_argument('--num_samples', type=int, default=1)
+    parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
+    parser.add_argument('--wd', type=float, default=0.0005, help='weight decay')
+    parser.add_argument('--bs', type=int, default=128, help='batch size')
+    parser.add_argument('--test_bs', type=int, default=25, help='test batch size')
+    parser.add_argument('--num_samples', type=int, default=1, help='Number of Ray samples')
 
     if state == 'train':
         parser.add_argument(
@@ -124,12 +123,13 @@ def create_hparams(state, FLAGS):  # pylint: disable=invalid-name
         data_path=FLAGS.data_path,
         batch_size=FLAGS.bs,
         gradient_clipping_by_global_norm=5.0,
-        use_cpu=FLAGS.use_cpu,
         explore=FLAGS.explore,
         aug_policy=FLAGS.aug_policy,
         no_cutout=FLAGS.no_cutout,
-        image_size=FLAGS.image_size,
-        recompute_dset_stats=FLAGS.recompute_dset_stats)
+        recompute_dset_stats=FLAGS.recompute_dset_stats,
+        lr=FLAGS.lr,
+        weight_decay_rate=FLAGS.wd,
+        test_batch_size=FLAGS.test_bs)
 
     if state == 'train':
         hparams.add_hparam('no_aug', FLAGS.no_aug)
@@ -168,86 +168,34 @@ def create_hparams(state, FLAGS):  # pylint: disable=invalid-name
         epochs = 200
         hparams.add_hparam('wrn_size', 32)
         hparams.add_hparam('wrn_depth', 40)
-        if FLAGS.dataset == 'cifar10':
-            hparams.add_hparam('lr', 0.1)
-            hparams.add_hparam('weight_decay_rate', 5e-4)
-        elif FLAGS.dataset == 'svhn' or FLAGS.dataset == 'svhn-full':
-            hparams.add_hparam('lr', 0.005)
-            hparams.add_hparam('weight_decay_rate', 0.005)
-        else:
-            raise ValueError()
     elif FLAGS.model_name == 'wrn_28_10':
         hparams.add_hparam('model_name', 'wrn')
         epochs = 200
         hparams.add_hparam('wrn_size', 160)
         hparams.add_hparam('wrn_depth', 28)
-        if FLAGS.dataset == 'cifar100' or (FLAGS.dataset == 'cifar10'
-                                           and FLAGS.train_size == 50000):
-            hparams.add_hparam('lr', 0.1)
-            hparams.add_hparam('weight_decay_rate', 5e-4)
-        elif FLAGS.dataset == 'cifar10' and FLAGS.train_size == 4000:
-            hparams.add_hparam('lr', 0.05)
-            hparams.add_hparam('weight_decay_rate', 0.005)
-        elif FLAGS.dataset == 'svhn' or FLAGS.dataset == 'svhn-full':
-            hparams.add_hparam('lr', 0.005)
-            hparams.add_hparam('weight_decay_rate', 0.001)
-        else:
-            raise ValueError()
     elif FLAGS.model_name == 'resnet':
         hparams.add_hparam('model_name', 'resnet')
         epochs = 200
         hparams.add_hparam('resnet_size', 20)
         hparams.add_hparam('num_filters', FLAGS.resnet_size)
-        hparams.add_hparam('lr', 0.1)
-        hparams.add_hparam('weight_decay_rate', 5e-4)
     elif FLAGS.model_name == 'shake_shake_32':
         hparams.add_hparam('model_name', 'shake_shake')
         epochs = 1800
         hparams.add_hparam('shake_shake_widen_factor', 2)
-        hparams.add_hparam('lr', 0.01)
-        hparams.add_hparam('weight_decay_rate', 0.001)
     elif FLAGS.model_name == 'shake_shake_96':
         hparams.add_hparam('model_name', 'shake_shake')
         epochs = 1800
         hparams.add_hparam('shake_shake_widen_factor', 6)
-        if FLAGS.dataset == 'cifar100':
-            hparams.add_hparam('lr', 0.01)
-            hparams.add_hparam('weight_decay_rate', 0.0025)
-        elif FLAGS.dataset == 'cifar10' and FLAGS.train_size == 50000:
-            hparams.add_hparam('lr', 0.01)
-            hparams.add_hparam('weight_decay_rate', 0.001)
-        elif FLAGS.dataset == 'cifar10' and FLAGS.train_size == 4000:
-            hparams.add_hparam('lr', 0.025)
-            hparams.add_hparam('weight_decay_rate', 0.0025)
-        elif FLAGS.dataset == 'svhn' or FLAGS.dataset == 'svhn-full':
-            hparams.add_hparam('lr', 0.01)  # or 0.01
-            hparams.add_hparam('weight_decay_rate', 0.00015)
-        else:
-            raise ValueError()
     elif FLAGS.model_name == 'shake_shake_112':
         hparams.add_hparam('model_name', 'shake_shake')
         epochs = 1800
         hparams.add_hparam('shake_shake_widen_factor', 7)
-        hparams.add_hparam('lr', 0.01)
-        hparams.add_hparam('weight_decay_rate', 0.001)
     elif FLAGS.model_name == 'pyramid_net':
         hparams.add_hparam('model_name', 'pyramid_net')
         epochs = 1800
-        if FLAGS.dataset == 'cifar100':
-            hparams.add_hparam('lr', 0.025)
-            hparams.add_hparam('weight_decay_rate', 5e-4)
-        elif FLAGS.dataset == 'cifar10':
-            hparams.add_hparam('lr', 0.05)
-            hparams.add_hparam('weight_decay_rate', 5e-5)
-        else:
-            raise ValueError()
         hparams.set_hparam('batch_size', 64)
     else:
         raise ValueError('Not Valid Model Name: %s' % FLAGS.model_name)
-    if FLAGS.lr > 0:
-        hparams.set_hparam('lr', FLAGS.lr)
-    if FLAGS.wd > 0:
-        hparams.set_hparam('weight_decay_rate', FLAGS.wd)
     if FLAGS.epochs > 0:
         tf.logging.info('overwriting with custom epochs')
         epochs = FLAGS.epochs

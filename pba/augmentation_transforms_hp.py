@@ -69,7 +69,7 @@ def apply_policy(policy, img, aug_policy, dset, image_size):
             assert count >= 0
             if count == 0:
                 break
-        return pil_unwrap(pil_img, dset)
+        return pil_unwrap(pil_img, dset, image_size)
     else:
         return img
 

@@ -97,8 +97,10 @@ def build_model(inputs, num_classes, is_training, hparams):
 class Model(object):
     """Builds an model."""
 
-    def __init__(self, hparams):
+    def __init__(self, hparams, num_classes, image_size):
         self.hparams = hparams
+        self.num_classes = num_classes
+        self.image_size = image_size
 
     def build(self, mode):
         """Construct the model."""
@@ -117,26 +119,18 @@ class Model(object):
         self.reuse = None if (mode == 'train') else True
         self.batch_size = self.hparams.batch_size
         if mode == 'eval':
-            self.batch_size = 25
+            self.batch_size = self.hparams.test_batch_size
 
     def _setup_images_and_labels(self, dataset):
         """Sets up image and label placeholders for the model."""
-        if dataset == 'cifar10' or dataset == 'svhn' or dataset == 'svhn-full':
-            self.num_classes = 10
-        elif dataset == 'cifar100':
-            self.num_classes = 100
-        else:
-            raise ValueError()
         if dataset == 'cifar10' or dataset == 'cifar100' or self.mode == 'train':
             self.images = tf.placeholder(tf.float32,
-                                         [self.batch_size, 32, 32, 3])
+                                         [self.batch_size, self.image_size, self.image_size, 3])
             self.labels = tf.placeholder(tf.float32,
                                          [self.batch_size, self.num_classes])
-        elif 'svhn' in dataset:
-            self.images = tf.placeholder(tf.float32, [None, 32, 32, 3])
-            self.labels = tf.placeholder(tf.float32, [None, self.num_classes])
         else:
-            raise ValueError(dataset)
+            self.images = tf.placeholder(tf.float32, [None, self.image_size, self.image_size, 3])
+            self.labels = tf.placeholder(tf.float32, [None, self.num_classes])
 
     def assign_epoch(self, session, epoch_value):
         session.run(
@@ -288,12 +282,12 @@ class ModelTrainer(object):
         # Determine if we should build the train and eval model. When using
         # distributed training we only want to build one or the other and not both.
         with tf.variable_scope('model', use_resource=False):
-            m = Model(self.hparams)
+            m = Model(self.hparams, self.data_loader.num_classes, self.data_loader.image_size)
             m.build('train')
             self._num_trainable_params = m.num_trainable_params
             self._saver = m.saver
         with tf.variable_scope('model', reuse=True, use_resource=False):
-            meval = Model(self.hparams)
+            meval = Model(self.hparams, self.data_loader.num_classes, self.data_loader.image_size)
             meval.build('eval')
         self.m = m
         self.meval = meval

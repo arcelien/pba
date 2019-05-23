@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Data utils for CIFAR-10 and CIFAR-100."""
+"""Data utils."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -45,6 +45,16 @@ def parse_policy(policy_emb, augmentation_transforms):
     return policy
 
 
+def shuffle_data(data, labels):
+    """Shuffle data using numpy."""
+    np.random.seed(0)
+    perm = np.arange(len(data))
+    np.random.shuffle(perm)
+    data = data[perm]
+    labels = labels[perm]
+    return data, labels
+
+
 class DataSet(object):
     """Dataset object that produces augmented training and eval data."""
 
@@ -54,50 +64,42 @@ class DataSet(object):
         self.curr_train_index = 0
 
         self.parse_policy(hparams)
-        train_data, train_labels, self.test_images, self.test_labels = self.load_data(
-            hparams)
-        # Shuffle train data.
-        np.random.seed(0)
-        perm = np.arange(len(train_data))
-        np.random.shuffle(perm)
-        train_data = train_data[perm]
-        train_labels = train_labels[perm]
-        train_size, val_size = hparams.train_size, hparams.validation_size
+        self.load_data(hparams)
 
-        # Break off test data
-        if 'cifar' in hparams.dataset:
-            assert 50000 >= train_size + val_size
-            self.train_images = train_data[:train_size]
-            self.train_labels = train_labels[:train_size]
-            self.val_images = train_data[train_size:train_size + val_size]
-            self.val_labels = train_labels[train_size:train_size + val_size]
-            self.num_train = self.train_images.shape[0]
-        elif 'svhn' in hparams.dataset:
-            if hparams.dataset == 'svhn-full':
-                assert train_size + val_size <= 604388
-            else:
-                assert train_size + val_size <= 73257
-            self.train_images = train_data[:train_size]
-            self.train_labels = train_labels[:train_size]
-            self.val_images = train_data[-val_size:]
-            self.val_labels = train_labels[-val_size:]
-            self.num_train = self.train_images.shape[0]
+        # Apply normalization
+        self.train_images = self.train_images.transpose(0, 2, 3, 1) / 255.0
+        self.val_images = self.val_images.transpose(0, 2, 3, 1) / 255.0
+        self.test_images = self.test_images.transpose(0, 2, 3, 1) / 255.0
+        if not hparams.recompute_dset_stats:
+            mean = self.augmentation_transforms.MEANS[hparams.dataset + '_' +
+                                                      str(hparams.train_size)]
+            std = self.augmentation_transforms.STDS[hparams.dataset + '_' +
+                                                    str(hparams.train_size)]
+        else:
+            mean = self.train_images.mean(axis=(0, 1, 2))
+            std = self.train_images.std(axis=(0, 1, 2))
+            self.augmentation_transforms.MEANS[hparams.dataset + '_' + str(hparams.train_size)] = mean
+            self.augmentation_transforms.STDS[hparams.dataset + '_' + str(hparams.train_size)] = std
+        tf.logging.info('mean:{}    std: {}'.format(mean, std))
+
+        self.train_images = (self.train_images - mean) / std
+        self.val_images = (self.val_images - mean) / std
+        self.test_images = (self.test_images - mean) / std
 
         assert len(self.test_images) == len(self.test_labels)
         assert len(self.train_images) == len(self.train_labels)
-
-        tf.logging.info('train dataset size: {}, test: {}, val: {}'.format(
-            train_size, len(self.test_images), val_size))
         assert len(self.val_images) == len(self.val_labels)
+        tf.logging.info('train dataset size: {}, test: {}, val: {}'.format(
+            len(self.train_images), len(self.test_images), len(self.val_images)))
 
     def parse_policy(self, hparams):
         """Parses policy schedule from input, which can be a list, list of lists, text file, or pickled list.
 
-    If list is not nested, then uses the same policy for all epochs.
+        If list is not nested, then uses the same policy for all epochs.
 
-    Args:
-      hparams: tf.hparams object.
-    """
+        Args:
+        hparams: tf.hparams object.
+        """
         # Parse policy
         if hparams.use_hp_policy:
             import pba.augmentation_transforms_hp as augmentation_transforms
@@ -221,7 +223,18 @@ class DataSet(object):
         test_data = test_data.reshape(10000, 3072)
         train_data = train_data.reshape(-1, 3, 32, 32)
         test_data = test_data.reshape(-1, 3, 32, 32)
-        return train_data, train_labels, test_data, test_labels, num_classes
+        train_labels = np.array(train_labels, dtype=np.int32)
+        test_labels = np.array(test_labels, dtype=np.int32)
+
+        self.test_images, self.test_labels = test_data, test_labels
+        train_data, train_labels = shuffle_data(train_data, train_labels)
+        train_size, val_size = hparams.train_size, hparams.validation_size
+        assert 50000 >= train_size + val_size
+        self.train_images = train_data[:train_size]
+        self.train_labels = train_labels[:train_size]
+        self.val_images = train_data[train_size:train_size + val_size]
+        self.val_labels = train_labels[train_size:train_size + val_size]
+        self.num_classes = num_classes
 
     def load_svhn(self, hparams):
         train_labels = []
@@ -256,52 +269,71 @@ class DataSet(object):
             test_labels = test_loader.labels
         else:
             raise ValueError(hparams.dataset)
-        return train_data, train_labels, test_data, test_labels, num_classes
+
+        self.test_images, self.test_labels = test_data, test_labels
+        train_data, train_labels = shuffle_data(train_data, train_labels)
+        train_size, val_size = hparams.train_size, hparams.validation_size
+        if hparams.dataset == 'svhn-full':
+            assert train_size + val_size <= 604388
+        else:
+            assert train_size + val_size <= 73257
+        self.train_images = train_data[:train_size]
+        self.train_labels = train_labels[:train_size]
+        self.val_images = train_data[-val_size:]
+        self.val_labels = train_labels[-val_size:]
+        self.num_classes = num_classes
+
+    def load_test(self, hparams):
+        """Load random data and labels."""
+        test_size = 200
+        self.num_classes = 200
+        self.train_images = np.random.random((hparams.train_size, 3, 224, 224)) * 255
+        self.val_images = np.random.random((hparams.validation_size, 3, 224, 224)) * 255
+        self.test_images = np.random.random((test_size, 3, 224, 224)) * 255
+        self.train_labels = np.random.randint(0, self.num_classes, (hparams.train_size))
+        self.val_labels = np.random.randint(0, self.num_classes, (hparams.validation_size))
+        self.test_labels = np.random.randint(0, self.num_classes, (test_size))
 
     def load_data(self, hparams):
         """Load raw data from specified dataset.
 
-    Args:
-      hparams: tf.hparams object.
+        Assumes data is in NCHW format.
 
-    Returns:
-      train_data: Training image data.
-      train_labels: Training ground truth labels.
-      test_data: Testing image data.
-      test_labels: Testing ground truth labels.
-    """
+        Populates:
+            self.train_images: Training image data.
+            self.train_labels: Training ground truth labels.
+            self.val_images: Validation/holdout image data.
+            self.val_labels: Validation/holdout ground truth labels.
+            self.test_images: Testing image data.
+            self.test_labels: Testing ground truth labels.
+            self.num_classes: Number of classes.
+            self.num_train: Number of training examples.
+            self.image_size: Width/height of image.
+
+        Args:
+            hparams: tf.hparams object.
+        """
         if hparams.dataset == 'cifar10' or hparams.dataset == 'cifar100':
-            train_data, train_labels, test_data, test_labels, num_classes = self.load_cifar(
-                hparams)
+            self.load_cifar(hparams)
         elif hparams.dataset == 'svhn' or hparams.dataset == 'svhn-full':
-            train_data, train_labels, test_data, test_labels, num_classes = self.load_svhn(
-                hparams)
+            self.load_svhn(hparams)
+        elif hparams.dataset == 'test':
+            self.load_test(hparams)
         else:
             raise ValueError('unimplemented')
-        train_data = train_data.transpose(0, 2, 3, 1) / 255.0
-        test_data = test_data.transpose(0, 2, 3, 1) / 255.0
-        if not hparams.recompute_dset_stats:
-            mean = self.augmentation_transforms.MEANS[hparams.dataset + '_' +
-                                                      str(hparams.train_size)]
-            std = self.augmentation_transforms.STDS[hparams.dataset + '_' +
-                                                    str(hparams.train_size)]
-        else:
-            mean = train_images.mean(axis=(0, 1, 2))
-            std = train_images.std(axis=(0, 1, 2))
-        tf.logging.info('mean:{}    std: {}'.format(mean, std))
 
-        train_data = (train_data - mean) / std
-        test_data = (test_data - mean) / std
-        train_labels = np.eye(num_classes)[np.array(
-            train_labels, dtype=np.int32)]
-        test_labels = np.eye(num_classes)[np.array(
-            test_labels, dtype=np.int32)]
-        assert len(train_data) == len(train_labels)
-        assert len(test_data) == len(test_labels)
-        tf.logging.info('In {} loader, number of images: {}'.format(
-            hparams.dataset,
-            len(train_data) + len(test_data)))
-        return train_data, train_labels, test_data, test_labels
+        self.num_train = self.train_images.shape[0]
+        self.image_size = self.train_images.shape[2]
+        self.train_labels = np.eye(self.num_classes)[np.array(
+            self.train_labels, dtype=np.int32)]
+        self.val_labels = np.eye(self.num_classes)[np.array(
+            self.val_labels, dtype=np.int32)]
+        self.test_labels = np.eye(self.num_classes)[np.array(
+            self.test_labels, dtype=np.int32)]
+        assert len(self.train_images) == len(self.train_labels)
+        assert len(self.val_images) == len(self.val_labels)
+        assert len(self.test_images) == len(self.test_labels)
+        assert self.train_images.shape[2] == self.train_images.shape[3]
 
     def next_batch(self, iteration=None):
         """Return the next minibatch of augmented data."""
@@ -330,7 +362,7 @@ class DataSet(object):
                         epoch_policy,
                         data,
                         dset=dset,
-                        image_size=self.hparams.image_size)
+                        image_size=self.image_size)
                 else:
                     # apply PBA policy)
                     if isinstance(self.policy[0], list):
@@ -343,14 +375,14 @@ class DataSet(object):
                                 data,
                                 self.hparams.aug_policy,
                                 dset,
-                                image_size=self.hparams.image_size)
+                                image_size=self.image_size)
                         else:
                             final_img = self.augmentation_transforms.apply_policy(
                                 self.policy[iteration],
                                 data,
                                 self.hparams.aug_policy,
                                 dset,
-                                image_size=self.hparams.image_size)
+                                image_size=self.image_size)
                     elif isinstance(self.policy, list):
                         # policy schedule
                         final_img = self.augmentation_transforms.apply_policy(
@@ -358,18 +390,22 @@ class DataSet(object):
                             data,
                             self.hparams.aug_policy,
                             dset,
-                            image_size=self.hparams.image_size)
+                            image_size=self.image_size)
                     else:
                         raise ValueError('Unknown policy.')
             else:
                 final_img = data
             if self.hparams.dataset == 'cifar10' or self.hparams.dataset == 'cifar100':
-                assert 'svhn' not in self.hparams.dataset
                 final_img = self.augmentation_transforms.random_flip(
                     self.augmentation_transforms.zero_pad_and_crop(
                         final_img, 4))
+            elif 'svhn' in self.hparams.dataset:
+                pass
             else:
-                assert 'svhn' in self.hparams.dataset
+                tf.logging.log_first_n(tf.logging.WARN, 'Using default random flip and crop.', 1)
+                final_img = self.augmentation_transforms.random_flip(
+                    self.augmentation_transforms.zero_pad_and_crop(
+                        final_img, 4))
             # Apply cutout
             if not self.hparams.no_cutout:
                 if 'cifar10' == self.hparams.dataset:
@@ -382,7 +418,9 @@ class DataSet(object):
                     final_img = self.augmentation_transforms.cutout_numpy(
                         final_img, size=20)
                 else:
-                    raise ValueError('Unknown dataset.')
+                    tf.logging.log_first_n(tf.logging.WARN, 'Using default cutout size (16x16).', 1)
+                    final_img = self.augmentation_transforms.cutout_numpy(
+                        final_img)
             final_imgs.append(final_img)
         batched_data = (np.array(final_imgs, np.float32), labels)
         self.curr_train_index += self.hparams.batch_size
