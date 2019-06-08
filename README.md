@@ -21,6 +21,7 @@ See below for a visualization of our augmentation strategy.
 </p>
 
 ### Getting Started
+<b><i>Code currently only supports Python 2.</b></i>
 
 ####  Install requirements
 
