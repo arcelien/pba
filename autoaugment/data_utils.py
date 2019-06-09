@@ -25,7 +25,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
-import autoaugment.augmentation_transforms
+import autoaugment.augmentation_transforms as augmentation_transforms
 import autoaugment.policies as found_policies
 
 # pylint:disable=logging-format-interpolation

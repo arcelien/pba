@@ -29,6 +29,9 @@ import torchvision
 from autoaugment.data_utils import unpickle
 import pba.policies as found_policies
 from pba.utils import parse_log_schedule
+import pba.augmentation_transforms_hp as augmentation_transforms_pba
+import pba.augmentation_transforms as augmentation_transforms_autoaug
+
 
 # pylint:disable=logging-format-interpolation
 
@@ -102,8 +105,7 @@ class DataSet(object):
         """
         # Parse policy
         if hparams.use_hp_policy:
-            import pba.augmentation_transforms_hp as augmentation_transforms
-            self.augmentation_transforms = augmentation_transforms
+            self.augmentation_transforms = augmentation_transforms_pba
 
             if isinstance(hparams.hp_policy,
                           str) and hparams.hp_policy.endswith('.txt'):
@@ -159,8 +161,7 @@ class DataSet(object):
                     self.policy))
 
         else:
-            import pba.augmentation_transforms as augmentation_transforms
-            self.augmentation_transforms = augmentation_transforms
+            self.augmentation_transforms = augmentation_transforms_autoaug
             tf.logging.info('using ENAS Policy or no augmentaton policy')
             if 'svhn' in hparams.dataset:
                 self.good_policies = found_policies.good_policies_svhn()

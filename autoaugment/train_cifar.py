@@ -28,8 +28,8 @@ import numpy as np
 import tensorflow as tf
 
 import autoaugment.custom_ops as ops
-import autoaugment.data_utils
-import autoaugment.helper_utils
+import autoaugment.data_utils as data_utils
+import autoaugment.helper_utils as helper_utils
 from autoaugment.shake_drop import build_shake_drop_model
 from autoaugment.shake_shake import build_shake_shake_model
 from autoaugment.wrn import build_wrn_model
@@ -373,7 +373,7 @@ class CifarModelTrainer(object):
           starting_epoch, valid_accuracy))
       training_accuracy = None
 
-      for curr_epoch in xrange(starting_epoch, hparams.num_epochs):
+      for curr_epoch in range(starting_epoch, hparams.num_epochs):
 
         # Run one training epoch
         training_accuracy = self._run_training_loop(m, curr_epoch)
