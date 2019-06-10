@@ -8,3 +8,4 @@ setproctitle
 torch
 torchvision
 cython
+scipy

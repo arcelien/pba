@@ -78,7 +78,9 @@ def build_model(inputs, num_classes, is_training, hparams):
       The logits of the image model.
     """
     scopes = setup_arg_scopes(is_training)
-    with contextlib.nested(*scopes):
+    if len(scopes) != 1:
+        raise ValueError('Nested scopes depreciated in py3.')
+    with scopes[0]:
         if hparams.model_name == 'pyramid_net':
             logits = build_shake_drop_model(inputs, num_classes, is_training)
         elif hparams.model_name == 'wrn':

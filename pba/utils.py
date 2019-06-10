@@ -24,7 +24,7 @@ def parse_log(file_path, epochs):
   Returns:
     A list containing the parsed policy of the form: [start epoch, start_epoch_clone, policy], where each element is a tuple of (num_epochs, policy list).
   """
-    raw_policy = open(file_path, "rb").readlines()
+    raw_policy = open(file_path, "r").readlines()
     raw_policy = [ast.literal_eval(line) for line in raw_policy]
 
     # Depreciated use case has policy as list instead of dict config.

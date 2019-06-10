@@ -59,6 +59,8 @@ def main(_):
                 else:
                     amt = np.random.choice(
                         [0, 1, 2, 3], p=[0.25, 0.25, 0.25, 0.25])
+                    # Cast np.int64 to int for py3 json
+                    amt = int(amt)
                     if random.random() < 0.5:
                         new_params.append(max(0, param - amt))
                     else:

@@ -1,5 +1,7 @@
 # Population Based Augmentation (PBA)
 
+<b><i>Note: Now with Python 3 support!</b></i>
+
 ### Table of Contents
 
 1. [Introduction](#introduction)
@@ -12,7 +14,7 @@
 
 Population Based Augmentation (PBA) is a algorithm that quickly and efficiently learns data augmentation functions for neural network training. PBA matches state-of-the-art results on CIFAR with one thousand times less compute, enabling researchers and practitioners to effectively learn new augmentation policies using a single workstation GPU.
 
-This repository contains code for the work "Population Based Augmentation: Efficient Learning of Augmentation Schedules" (http://arxiv.org/abs/1905.05393) in TensorFlow and Python 2. It includes training of models with the reported augmentation schedules and discovery of new augmentation policy schedules.
+This repository contains code for the work "Population Based Augmentation: Efficient Learning of Augmentation Schedules" (http://arxiv.org/abs/1905.05393) in TensorFlow and Python. It includes training of models with the reported augmentation schedules and discovery of new augmentation policy schedules.
 
 See below for a visualization of our augmentation strategy.
 
@@ -21,7 +23,7 @@ See below for a visualization of our augmentation strategy.
 </p>
 
 ### Getting Started
-<b><i>Code currently only supports Python 2.</b></i>
+Code supports Python 2 and 3.
 
 ####  Install requirements
 
@@ -107,7 +109,7 @@ bash datasets/cifar100.sh
   </tr>
 </table></div>
 
-Scripts to reproduce results are located in `scripts/table_*.sh`. One argument, the model name, is required for all of the scripts. The available options are those reported for each dataset in Tables 1-4 of the paper, among the choices: `wrn_28_10, ss_32, ss_96, ss_112, pyramid_net`. Hyperparamaters are also located inside each script file.
+Scripts to reproduce results are located in `scripts/table_*.sh`. One argument, the model name, is required for all of the scripts. The available options are those reported for each dataset in Table 2 of the paper, among the choices: `wrn_28_10, ss_32, ss_96, ss_112, pyramid_net`. Hyperparamaters are also located inside each script file.
 
 For example, to reproduce CIFAR-10 results on Wide-ResNet-28-10:
 
