@@ -33,7 +33,7 @@ from pba.augmentation_transforms import MEANS, STDS, PARAMETER_MAX  # pylint: di
 from pba.augmentation_transforms import _rotate_impl, _posterize_impl, _shear_x_impl, _shear_y_impl, _translate_x_impl, _translate_y_impl, _crop_impl, _solarize_impl, _cutout_pil_impl, _enhancer_impl
 
 
-def apply_policy(policy, img, aug_policy, dset, image_size):
+def apply_policy(policy, img, aug_policy, dset, image_size, verbose=False):
     """Apply the `policy` to the numpy `img`.
 
   Args:
@@ -45,6 +45,7 @@ def apply_policy(policy, img, aug_policy, dset, image_size):
     aug_policy: Augmentation policy to use.
     dset: Dataset, one of the keys of MEANS or STDS.
     image_size: Width and height of image.
+    verbose: Whether to print applied augmentations.
 
   Returns:
     The result of applying `policy` to `img`.
@@ -65,6 +66,8 @@ def apply_policy(policy, img, aug_policy, dset, image_size):
             xform_fn = NAME_TO_TRANSFORM[name].pil_transformer(
                 probability, level, image_size)
             pil_img, res = xform_fn(pil_img)
+            if verbose and res:
+                print("Op: {}, Magnitude: {}, Prob: {}".format(name, level, probability))
             count -= res
             assert count >= 0
             if count == 0:

@@ -1,6 +1,8 @@
 # Population Based Augmentation (PBA)
 
-<b><i>Note: Now with Python 3 support!</b></i>
+<b><i>New: Visualize PBA and applied augmentations with the notebook `pba.ipynb`!</b></i>
+
+<b><i>Now with Python 3 support.</b></i>
 
 ### Table of Contents
 
