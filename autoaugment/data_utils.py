@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import copy
 try:
-    import cPickle
+    import cPickle as pickle
 except:
     import pickle
 import os
@@ -182,6 +182,6 @@ class DataSet(object):
 def unpickle(f):
   tf.logging.info('loading file: {}'.format(f))
   fo = tf.gfile.Open(f, 'r')
-  d = cPickle.load(fo)
+  d = pickle.load(fo)
   fo.close()
   return d

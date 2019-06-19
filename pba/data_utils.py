@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import copy
 try:
-    import cPickle
+    import cPickle as pickle
 except:
     import pickle
 import os
@@ -132,7 +132,7 @@ class DataSet(object):
                 tf.logging.info('custom .p file, policy number: {}'.format(
                     hparams.schedule_num))
                 with open(hparams.hp_policy, 'rb') as f:
-                    policy = cPickle.load(f)[hparams.schedule_num]
+                    policy = pickle.load(f)[hparams.schedule_num]
                 raw_policy = []
                 for num_iters, pol in policy:
                     for _ in range(num_iters * hparams.num_epochs //
