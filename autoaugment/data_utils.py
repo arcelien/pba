@@ -181,7 +181,10 @@ class DataSet(object):
 
 def unpickle(f):
   tf.logging.info('loading file: {}'.format(f))
-  fo = tf.gfile.Open(f, 'r')
-  d = pickle.load(fo)
+  fo = tf.gfile.Open(f, 'rb')
+  try:
+    d = pickle.load(fo, encoding='latin1')
+  except:
+    d = pickle.load(fo)
   fo.close()
   return d
