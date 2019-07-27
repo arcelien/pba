@@ -177,7 +177,7 @@ def create_hparams(state, FLAGS):  # pylint: disable=invalid-name
         hparams.add_hparam('model_name', 'resnet')
         epochs = 200
         hparams.add_hparam('resnet_size', 20)
-        hparams.add_hparam('num_filters', FLAGS.resnet_size)
+        hparams.add_hparam('num_filters', 32)
     elif FLAGS.model_name == 'shake_shake_32':
         hparams.add_hparam('model_name', 'shake_shake')
         epochs = 1800

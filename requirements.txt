@@ -1,4 +1,6 @@
+# Tested with tensorflow-gpu version 1.10.0 and 1.11.0.
 tensorflow-gpu
+# Tested with ray version 0.7.0.
 ray
 jupyter
 requests
