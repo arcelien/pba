@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
+import collections
 import inspect
 import random
 
@@ -143,23 +144,23 @@ brightness = TransformT('Brightness', _enhancer_impl(ImageEnhance.Brightness))
 sharpness = TransformT('Sharpness', _enhancer_impl(ImageEnhance.Sharpness))
 
 HP_TRANSFORMS = [
-    auto_contrast,
-    equalize,
-    invert,
     rotate,
-    posterize,
-    solarize,
-    color,
-    contrast,
-    brightness,
-    sharpness,
-    shear_x,
-    shear_y,
     translate_x,
     translate_y,
+    brightness,
+    color,
+    invert,
+    sharpness,
+    posterize,
+    shear_x,
+    solarize,
+    shear_y,
+    equalize,
+    auto_contrast,
     cutout,
+    contrast
 ]
 
-NAME_TO_TRANSFORM = {t.name: t for t in HP_TRANSFORMS}
+NAME_TO_TRANSFORM = collections.OrderedDict((t.name, t) for t in HP_TRANSFORMS)
 HP_TRANSFORM_NAMES = NAME_TO_TRANSFORM.keys()
 NUM_HP_TRANSFORM = len(HP_TRANSFORM_NAMES)
