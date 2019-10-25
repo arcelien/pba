@@ -414,10 +414,10 @@ class DataSet(object):
             if not self.hparams.no_cutout:
                 if 'cifar10' == self.hparams.dataset:
                     final_img = self.augmentation_transforms.cutout_numpy(
-                        final_img)
+                        final_img, size=16)
                 elif 'cifar100' == self.hparams.dataset:
                     final_img = self.augmentation_transforms.cutout_numpy(
-                        final_img, size=8)
+                        final_img, size=16)
                 elif 'svhn' in self.hparams.dataset:
                     final_img = self.augmentation_transforms.cutout_numpy(
                         final_img, size=20)
